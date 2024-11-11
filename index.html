@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .game-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            padding: 20px;
+            width: 100%;
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .game-board {
+            border: 2px solid #444;
+            width: fit-content;
+            display: grid;
+            grid-template-rows: repeat(20, 30px);
+            grid-template-columns: repeat(10, 30px);
+            background-color: #111;
+            gap: 0;
+            margin: 0 auto;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #333;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.2s ease-out;
+        }
+        .tetromino {
+            background-color: cyan;
+        }
+        .locked {
+            background-color: gray;
+        }
+
+        .score-container {
+            background: linear-gradient(45deg, #2a2a2a, #3c3c3c);
+            border: 2px solid #665e3a;
+            border-radius: 10px;
+            padding: 15px 30px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2),
+                        inset 0 0 15px rgba(0, 0, 0, 0.5);
+            margin-bottom: 30px;
+        }
+
+        .score-label {
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 16px;
+            color: #998235;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .score-value {
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 32px;
+            background: linear-gradient(180deg, #ffd700, #b8860b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 
+                2px 2px 2px rgba(0, 0, 0, 0.3),
+                0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Score update animation with gold flash */
+        @keyframes scoreUpdate {
+            0% { transform: scale(1); filter: brightness(1); }
+            50% { 
+                transform: scale(1.1); 
+                filter: brightness(1.5);
+                text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+
+        .score-update {
+            animation: scoreUpdate 0.3s ease-out;
+        }
+
+        .row-clear {
+            animation: clearAnimation 0.5s;
+        }
+        @keyframes clearAnimation {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+
+        .game-panel {
+            position: absolute;
+            left: auto;
+            right: -220px;
+            top: 20px;
+            margin-left: 0;
+            width: 200px;
+            background: linear-gradient(45deg, #1a1a1a, #2c2c2c);
+            border: 2px solid #444;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2),
+                        inset 0 0 15px rgba(0, 0, 0, 0.5);
+            align-self: flex-start;
+            margin-top: 0;
+        }
+
+        .next-piece-container {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #111;
+            border: 1px solid #444;
+            border-radius: 5px;
+        }
+
+        .panel-label {
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            margin-top: 30px;
+        }
+
+        .panel-label:first-child {
+            margin-top: 0;
+        }
+
+        /* Update the next piece preview to match */
+        .next-piece-container .cell {
+            width: 30px;
+            height: 30px;
+        }
+
+        /* Update the next piece grid */
+        #next-piece div {
+            grid-template-rows: repeat(4, 30px) !important;
+            grid-template-columns: repeat(4, 30px) !important;
+        }
+
+        /* Add this new style for the controls text */
+        .controls-text {
+            color: #fff;
+            font-size: 14px;
+            line-height: 2;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            letter-spacing: 0.8px;
+            text-shadow: 
+                1px 1px 0 rgba(0, 0, 0, 0.8),
+                0 0 8px rgba(255, 255, 255, 0.3);
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="score-container">
+            <div class="score-label">Score</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="game-wrapper">
+            <div class="game-board" id="board"></div>
+            <div class="game-panel">
+                <div class="panel-label">Next Piece</div>
+                <div class="next-piece-container" id="next-piece"></div>
+                <!-- You can add more game info here -->
+                <div class="panel-label">Controls</div>
+                <div class="controls-text">
+                    ◀️ ▶️: Move<br>
+                    ▲️: Rotate<br>
+                    ▼️: Soft Drop<br>
+                    Space: Hard Drop
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game Constants
+        const GAME_CONFIG = {
+            BOARD_WIDTH: 10,
+            BOARD_HEIGHT: 20,
+            CELL_SIZE: 20,
+            TICK_RATE: 1000,
+            SCORE_PER_LINE: 100,
+            CONTROLS: {
+                LEFT: 'ArrowLeft',
+                RIGHT: 'ArrowRight',
+                DOWN: 'ArrowDown',
+                UP: 'ArrowUp',
+                HARD_DROP: ' '
+            }
+        };
+
+        const TETROMINOES = {
+            I: { shape: [[1, 1, 1, 1]], color: 'cyan' },
+            O: { shape: [[1, 1], [1, 1]], color: 'yellow' },
+            T: { shape: [[1, 1, 1], [0, 1, 0]], color: 'purple' },
+            L: { shape: [[1, 1, 1], [1, 0, 0]], color: 'orange' },
+            J: { shape: [[1, 1, 1], [0, 0, 1]], color: 'blue' },
+            S: { shape: [[1, 1, 0], [0, 1, 1]], color: 'green' },
+            Z: { shape: [[0, 1, 1], [1, 1, 0]], color: 'red' }
+        };
+
+        // Utility functions
+        const Utils = {
+            createElement(id, className) {
+                const element = document.createElement('div');
+                if (id) element.id = id;
+                if (className) element.className = className;
+                return element;
+            },
+
+            getRandomTetromino() {
+                const shapes = Object.entries(TETROMINOES);
+                const [type, details] = shapes[Math.floor(Math.random() * shapes.length)];
+                return {
+                    type,
+                    shape: details.shape,
+                    color: details.color
+                };
+            }
+        };
+
+        // Board Manager Class
+        class BoardManager {
+            constructor() {
+                this.board = [];
+                this.boardElement = document.getElementById('board');
+                this.initBoard();
+            }
+
+            initBoard() {
+                for (let y = 0; y < GAME_CONFIG.BOARD_HEIGHT; y++) {
+                    this.board[y] = Array(GAME_CONFIG.BOARD_WIDTH).fill(0);
+                    for (let x = 0; x < GAME_CONFIG.BOARD_WIDTH; x++) {
+                        this.boardElement.appendChild(
+                            Utils.createElement(`cell-${y}-${x}`, 'cell')
+                        );
+                    }
+                }
+            }
+
+            updateCell(x, y, value, color = null) {
+                const cell = document.getElementById(`cell-${y}-${x}`);
+                if (!cell) return;
+                
+                cell.className = 'cell';
+                if (value) {
+                    cell.classList.add(color ? 'tetromino' : 'locked');
+                    if (color) cell.style.backgroundColor = color;
+                } else {
+                    cell.style.backgroundColor = '';
+                }
+            }
+
+            clearBoard() {
+                this.board.forEach((row, y) => {
+                    row.fill(0);
+                    row.forEach((_, x) => this.updateCell(x, y, 0));
+                });
+            }
+        }
+
+        // Tetromino Manager Class
+        class TetrominoManager {
+            constructor(boardManager) {
+                this.boardManager = boardManager;
+                this.current = null;
+                this.next = null;
+                this.nextPieceContainer = document.getElementById('next-piece');
+            }
+
+            createNewTetromino() {
+                if (!this.next) {
+                    this.next = Utils.getRandomTetromino();
+                }
+                
+                this.current = {
+                    ...this.next,
+                    x: Math.floor((GAME_CONFIG.BOARD_WIDTH - this.next.shape[0].length) / 2),
+                    y: 0
+                };
+                
+                this.next = Utils.getRandomTetromino();
+                this.drawNextPiece();
+                
+                return this.current;
+            }
+
+            // ... rest of tetromino-related methods ...
+        }
+
+        // Score Manager Class
+        class ScoreManager {
+            constructor() {
+                this.score = 0;
+                this.scoreElement = document.getElementById('score');
+            }
+
+            update(increment) {
+                this.score += increment;
+                this.scoreElement.textContent = this.score;
+                this.scoreElement.classList.add('score-update');
+                setTimeout(() => this.scoreElement.classList.remove('score-update'), 300);
+            }
+
+            reset() {
+                this.score = 0;
+                this.scoreElement.textContent = '0';
+            }
+        }
+
+        // Main Game Class
+        class TetrisGame {
+            constructor() {
+                this.boardManager = new BoardManager();
+                this.tetrominoManager = new TetrominoManager(this.boardManager);
+                this.scoreManager = new ScoreManager();
+                this.gameInterval = null;
+                this.isGameOver = false;
+                
+                this.setupControls();
+            }
+
+            // ... rest of game logic methods ...
+        }
+
+        // Initialize game
+        const game = new TetrisGame();
+        game.start();
+    </script>
+</body>
+</html>
