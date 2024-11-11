@@ -2,8 +2,6 @@
 
 A sleek, browser-based implementation of the classic Tetris game built with vanilla JavaScript, HTML5, and CSS3.
 
-![Tetris Game Screenshot](screenshot.png) <!-- You'll need to add your own screenshot -->
-
 ## Features
 
 - 🎮 Classic Tetris gameplay mechanics
